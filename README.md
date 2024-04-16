@@ -8,3 +8,7 @@
 3. Collateral: Exagenous (Crypto)
    - ETH wETH
    - BTC wBTC
+
+- @title StableCoin
+- @author Web3Santa
+- @notice Algorithmic
