@@ -1,4 +1,4 @@
-## StableCoint
+## StableCoin
 
 1. Anchored or Pegged -> $1.00
    1. chainlink Price Feed.

@@ -16,6 +16,7 @@ contract HelperConfig is Script {
         address weth;
         address wbtc;
         uint256 deployerKey;
+        address deployerAddress;
     }
 
     uint8 public constant DECIMAL = 8;
@@ -23,6 +24,7 @@ contract HelperConfig is Script {
     int256 public constant BTC_USD_PRICE = 40000e8;
 
     uint256 public DEFAULT_ANVIL_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+    address public DEFAULT_ANVIL_ADDRESS = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     NetworkConfig public activeNetworkConfig;
 
@@ -40,7 +42,8 @@ contract HelperConfig is Script {
             wbtcUsdPriceFeed: 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43,
             weth: 0x8a7d85bbC5153396357Ee30ba0d2b964022B4DC8,
             wbtc: 0xD8D7B82506Fb204af708134999Bb775069e0b1e4,
-            deployerKey: vm.envUint("PRIVATE_KEY")
+            deployerKey: vm.envUint("PRIVATE_KEY"),
+            deployerAddress: vm.envAddress("PRIVATE_KEY")
         });
     }
 
@@ -63,7 +66,8 @@ contract HelperConfig is Script {
             wbtcUsdPriceFeed: address(wbtcUsdPriceFeed),
             weth: address(wethMock),
             wbtc: address(wbtcMock),
-            deployerKey: DEFAULT_ANVIL_KEY
+            deployerKey: DEFAULT_ANVIL_KEY,
+            deployerAddress: DEFAULT_ANVIL_ADDRESS
         });
     }
 }
