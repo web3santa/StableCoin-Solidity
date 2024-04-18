@@ -9,6 +9,8 @@ import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 
 contract DSCEngineTest is Test {
+    error DSCEngine__BreakHealthFactor(uint256 healthFactor);
+
     DeployStableCoin public deployer;
     DecentralizedStableCoin public dsc;
     DSCEngine public dsce;
@@ -38,6 +40,221 @@ contract DSCEngineTest is Test {
         dsce.depositCollateral(weth, AMOUNT_COLLATERAL);
         vm.stopPrank();
         _;
+    }
+
+    modifier depositedCollateralAndMintDsc() {
+        vm.startPrank(user);
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
+        dsce.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL, 1500 ether);
+        vm.stopPrank();
+        _;
+    }
+
+    function testRedeeomToGetCollateral() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        uint256 uscBal = dsc.balanceOf(user);
+        console.log(uscBal);
+        dsc.approve(address(dsce), 1500 ether);
+        vm.expectRevert();
+        dsce.burnDsc(1500000000000000000000);
+        // dsce.burnDsc(1500 ether);
+        // dsce.redeemCollateral(address(weth), AMOUNT_COLLATERAL);
+        uscBal = dsc.balanceOf(user);
+        console.log(uscBal);
+        vm.stopPrank();
+
+        // assertEq(uscBal, 0);
+    }
+
+    function testBurnDsc() public {
+        vm.startPrank(user);
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
+        dsce.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL, 15000 ether);
+        uint256 userBal = dsc.balanceOf(user);
+        console.log(userBal);
+        uint256 burnAmount = 5000 ether;
+        dsc.approve(address(dsc), burnAmount);
+
+        vm.expectRevert(DSCEngine.DSCEngine__MorethanZero.selector);
+        dsce.burnDsc(0);
+
+        dsc.balanceOf(user);
+        console.log(userBal);
+
+        vm.stopPrank();
+    }
+
+    function testgetUsdValueWithRevert() public {
+        vm.startPrank(user);
+        ERC20Mock newToken = new ERC20Mock("new", "new", address(user), 100 ether);
+        uint256 bal = ERC20Mock(newToken).balanceOf(user);
+        console.log(bal);
+        vm.expectRevert();
+        dsce.getUsdValue(address(newToken), 10 ether);
+        // uint256 expectedETHUsdValue = 10 ether * 3000;
+        // console.log(acturalUsdValueETH);
+        vm.stopPrank();
+
+        // assertEq(acturalUsdValueETH, expectedETHUsdValue);
+    }
+
+    function testgetUsdValue() public {
+        vm.startPrank(user);
+        uint256 acturalUsdValueETH = dsce.getUsdValue(address(weth), 10 ether);
+        uint256 expectedETHUsdValue = 10 ether * 3000;
+        console.log(acturalUsdValueETH);
+        vm.stopPrank();
+
+        assertEq(acturalUsdValueETH, expectedETHUsdValue);
+    }
+
+    function testgetAccountCollaterlValue() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        uint256 totalCollateralValueInUsd = dsce.getAccountCollaterlValue(user);
+        console.log(totalCollateralValueInUsd);
+        vm.stopPrank();
+
+        assertEq(totalCollateralValueInUsd, AMOUNT_COLLATERAL * 3000);
+    }
+
+    function testLiquidation() public {
+        vm.startPrank(user);
+        uint256 initialCollateralEth = 1 ether;
+        uint256 overMintDsc = 1500 ether;
+        ERC20Mock(weth).approve(address(dsce), initialCollateralEth);
+        dsce.depositCollateralAndMintDsc(weth, initialCollateralEth, overMintDsc);
+        uint256 userHealthFactor = dsce.getHealthFactor(user);
+        console.log(userHealthFactor);
+
+        vm.stopPrank();
+
+        // 1071428571428571428
+    }
+
+    function testBreakHealthFactor() public {
+        vm.startPrank(user);
+        uint256 initialCollateralEth = 5 ether;
+        uint256 overMintDsc = 15000 ether;
+        ERC20Mock(weth).approve(address(dsce), initialCollateralEth);
+        vm.expectRevert();
+
+        dsce.depositCollateralAndMintDsc(weth, initialCollateralEth, overMintDsc);
+        // uint256 userHealthFactor = dsce.getHealthFactor(user);
+        // console.log(userHealthFactor);
+
+        vm.stopPrank();
+    }
+
+    function testSmallCollateralAndMintOverDscRevert() public {
+        vm.startPrank(user);
+        uint256 initialCollateralEth = 10 ether;
+        uint256 overMintDsc = 30000 ether;
+        ERC20Mock(weth).approve(address(dsce), initialCollateralEth);
+
+        vm.expectRevert();
+        dsce.depositCollateralAndMintDsc(weth, initialCollateralEth, overMintDsc);
+        uint256 userDscBal = dsc.balanceOf(user);
+        console.log(userDscBal);
+        // dsce.liquidate(address(weth), user, AMOUNT_COLLATERAL);
+
+        vm.stopPrank();
+    }
+
+    function testLiquidateRevertWithHelathFactor() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        vm.expectRevert(DSCEngine.DSCEngine__HealthFactorOK.selector);
+        dsce.liquidate(address(weth), user, 2 ether);
+        vm.stopPrank();
+    }
+
+    function testLiquidateRevertWithZeroAmount() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        vm.expectRevert(DSCEngine.DSCEngine__MorethanZero.selector);
+        dsce.liquidate(address(weth), user, 0 ether);
+        vm.stopPrank();
+    }
+
+    function testCheckHealthFactor() public {
+        uint256 callateralAmount = 10 ether;
+        uint256 mintDsc = 10 ether;
+        vm.startPrank(user);
+        ERC20Mock(weth).approve(address(dsce), callateralAmount);
+        dsce.depositCollateralAndMintDsc(weth, callateralAmount, mintDsc);
+        uint256 healthFactor = dsce.getHealthFactor(user);
+        console.log(healthFactor);
+        vm.stopPrank();
+
+        uint256 expectedHealthFactor = 1500 ether;
+
+        assertEq(healthFactor, expectedHealthFactor);
+    }
+
+    function testRedeemCollateralRevertwithOvereAmount() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        vm.expectRevert();
+        dsce.redeemCollateral(address(weth), 11 ether);
+        vm.stopPrank();
+    }
+
+    function testredeemCollateralRevertWithZeroAmount() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        vm.expectRevert(DSCEngine.DSCEngine__MorethanZero.selector);
+        dsce.redeemCollateral(address(weth), 0 ether);
+        vm.stopPrank();
+    }
+
+    function testDepositAndMintDsc() public {
+        vm.startPrank(user);
+        uint256 dscBalance = dsc.balanceOf(user);
+        console.log(dscBalance);
+
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
+        dsce.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL, AMOUNT_COLLATERAL);
+        dscBalance = dsc.balanceOf(user);
+        console.log(dscBalance);
+        vm.stopPrank();
+        uint256 expectedDSCAmount = 10 ether;
+        assertEq(dscBalance, expectedDSCAmount);
+    }
+
+    function testRedeemCollateral() public depositedCollateral {
+        vm.startPrank(user);
+        uint256 userBalance = ERC20Mock(weth).balanceOf(user);
+        console.log(userBalance);
+
+        uint256 mintAmount = 2 ether;
+        dsce.mintDsc(mintAmount);
+
+        dsce.redeemCollateral(address(weth), 2 ether);
+        userBalance = ERC20Mock(weth).balanceOf(user);
+        console.log(userBalance);
+        vm.stopPrank();
+
+        assertEq(userBalance, 2 ether);
+    }
+
+    function testMintDSCAndRevert() public depositedCollateral {
+        vm.startPrank(user);
+        uint256 mintAmount = 0 ether;
+        vm.expectRevert(DSCEngine.DSCEngine__MorethanZero.selector);
+        dsce.mintDsc(mintAmount);
+        uint256 userBalance = ERC20Mock(weth).balanceOf(user);
+        console.log(userBalance);
+
+        vm.stopPrank();
+    }
+
+    function testMintDSC() public depositedCollateral {
+        vm.startPrank(user);
+        ERC20Mock(weth).mint(user, 2 ether);
+        uint256 userBalance = ERC20Mock(weth).balanceOf(user);
+
+        uint256 mintAmount = 2 ether;
+        dsce.mintDsc(mintAmount);
+        userBalance = ERC20Mock(weth).balanceOf(user);
+        console.log(userBalance);
+
+        vm.stopPrank();
     }
 
     function testCanDepositeCollateralAndGetAccountInfos() public depositedCollateral {
