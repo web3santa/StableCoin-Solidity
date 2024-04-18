@@ -80,8 +80,22 @@ contract DSCEngineTest is Test {
         assertEq(wethBalance, 5 ether);
     }
 
-    function testDepositCollateral() public {
-        vm.prank(user);
+    function testGetUserCollerterraBTCAmount() public {
+        vm.startPrank(user);
+        uint256 wbtcBalance = ERC20Mock(wbtc).balanceOf(user);
+        console.log(wbtcBalance);
+
+        ERC20Mock(wbtc).approve(address(dece), 1 ether);
         dece.depositCollateral(wbtc, 1 ether);
+
+        wbtcBalance = ERC20Mock(wbtc).balanceOf(user);
+        console.log(wbtcBalance);
+
+        uint256 wbtcColleteralAmount = dece.getUserCollerterralAmount(user, wbtc);
+        console.log(wbtcColleteralAmount);
+
+        assertEq(wbtcColleteralAmount, 1 ether);
+
+        vm.stopPrank();
     }
 }
