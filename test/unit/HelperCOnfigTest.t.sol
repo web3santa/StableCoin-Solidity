@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {DeployStableCoin} from "../../script/DeployStableCoin.s.sol";
-import {DSCEngin} from "../../src/DSCEngine.sol";
+import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 
 contract TestHelperConfig is Test {
     DeployStableCoin public deployer;
     DecentralizedStableCoin public dsc;
-    DSCEngin public dece;
+    DSCEngine public dece;
     HelperConfig public config;
     address public deployerAddress;
     address wethUsdPriceFeed;

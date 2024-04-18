@@ -22,7 +22,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
  *  DSC system should always be ovvercollateralized at no point should the value of all collateral
  *
  */
-contract DSCEngin is ReentrancyGuard {
+contract DSCEngine is ReentrancyGuard {
     error DSCEngine__MorethanZero();
     error DSCEngine__PriceFeedMustMatchLenthTokenAddress();
     error DSCEngine__NotAllowedToken();
@@ -244,7 +244,7 @@ contract DSCEngin is ReentrancyGuard {
 
         // $1000 eth / 100 dsc
         // 1000 * 50 = 50000 / 100 = (500 / 100) > 1
-
+        // $1000  500 / 750 = 1
         return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted; // (150 / 100)
     }
 
@@ -315,10 +315,6 @@ contract DSCEngin is ReentrancyGuard {
         return ((uint256(price) * amount * ADDITIONAL_FEED_PRECISION) / PRECISION);
     }
 
-    function getUserCollerterralAmount(address user, address token) public view returns (uint256) {
-        return s_collateralDeposited[user][token];
-    }
-
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
         // price of ETH (token)
         // $ETH
@@ -327,6 +323,21 @@ contract DSCEngin is ReentrancyGuard {
         (, int256 price,,,) = priceFeed.latestRoundData();
 
         // ($1000e18 * 1e18) / ($2000 * 1e10) =
+        // 5000000000000000000 / 30000000000000 = 166666
         return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
+    }
+
+    function getUserCollerterralAmount(address user, address token) public view returns (uint256) {
+        return s_collateralDeposited[user][token];
+    }
+
+    function getUserAccountInfo(address user)
+        external
+        view
+        returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
+    {
+        (totalDscMinted, collateralValueInUsd) = _getAccountInformation(user);
+
+        return (totalDscMinted, collateralValueInUsd);
     }
 }
