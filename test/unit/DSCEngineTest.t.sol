@@ -50,6 +50,59 @@ contract DSCEngineTest is Test {
         _;
     }
 
+    function testRedeedDo() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        uint256 dscBal = dsc.balanceOf(user);
+        console.log(dscBal);
+        uint256 wethBal = ERC20Mock(weth).balanceOf(user);
+        console.log(wethBal);
+        dsc.approve(address(dsce), 1500 ether);
+        dsce.redeemCollateralForDsc(address(weth), AMOUNT_COLLATERAL, 1500 ether);
+        dscBal = dsc.balanceOf(user);
+        console.log(dscBal);
+        wethBal = ERC20Mock(weth).balanceOf(user);
+        console.log(wethBal);
+
+        vm.stopPrank();
+        assertEq(wethBal, 10 ether);
+        assertEq(dscBal, 0);
+    }
+
+    function testcalculateHalthFactor() public depositedCollateralAndMintDsc {
+        vm.startPrank(user);
+        uint256 tokenUSdValue = dsce.getUsdValue(weth, 10 ether);
+        uint256 health = dsce.calculateHalthFactor(20000 ether, tokenUSdValue);
+        console.log((health / 1e18) * 100);
+        vm.stopPrank();
+
+        // assertEq(health, 5000000000000000000);
+    }
+
+    function testgetMIN_HEALTH_FACTOR() public view {
+        uint256 precition = dsce.getMIN_HEALTH_FACTOR();
+        assertEq(precition, 1e18);
+    }
+
+    function testgetLIQUIDATION_BONUS() public view {
+        uint256 precition = dsce.getLIQUIDATION_BONUS();
+        assertEq(precition, 10);
+    }
+
+    function testgetLIQUIDATION_PRECISION() public view {
+        uint256 precition = dsce.getLIQUIDATION_PRECISION();
+        assertEq(precition, 100);
+    }
+
+    function testgetLIQUIDATION_THRESHOLD() public view {
+        uint256 precition = dsce.getLIQUIDATION_THRESHOLD();
+        assertEq(precition, 50);
+    }
+
+    function testgetPRECISION() public view {
+        uint256 precition = dsce.getPRECISION();
+        assertEq(precition, 1e18);
+    }
+
     function testRedeeomToGetCollateral() public depositedCollateralAndMintDsc {
         vm.startPrank(user);
         uint256 uscBal = dsc.balanceOf(user);
