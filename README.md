@@ -25,3 +25,13 @@ forge coverage --report debug
 
 1. some proper oracle use
 2. write more tests
+
+0: contract DecentralizedStableCoin 0x108B53A7246c1de29bF866c96330C1A1A8433179
+1: contract DSCEngine 0x2a9d306079A48D0d3b25a2C9ec6a82D5302Bf422
+2: contract HelperConfig 0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141
+
+healthfactor
+2.04
+1.5
+1.3
+1.05

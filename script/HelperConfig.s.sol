@@ -43,7 +43,7 @@ contract HelperConfig is Script {
             weth: 0x8a7d85bbC5153396357Ee30ba0d2b964022B4DC8,
             wbtc: 0xD8D7B82506Fb204af708134999Bb775069e0b1e4,
             deployerKey: vm.envUint("PRIVATE_KEY"),
-            deployerAddress: vm.envAddress("PRIVATE_KEY")
+            deployerAddress: vm.envAddress("ADDRESS")
         });
     }
 

@@ -50,6 +50,13 @@ contract DSCEngineTest is Test {
         _;
     }
 
+    function testEnvAddress() public view {
+        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
+        address deployerAddress2 = vm.envAddress("ADDRESS");
+        console.log(deployerKey);
+        console.log(deployerAddress2);
+    }
+
     function testRedeedDo() public depositedCollateralAndMintDsc {
         vm.startPrank(user);
         uint256 dscBal = dsc.balanceOf(user);
