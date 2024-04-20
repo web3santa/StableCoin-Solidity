@@ -8,7 +8,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-
+import {OracleLib} from "./libraries/OracleLib.sol";
 /**
  * @title DSCEngine
  * @author Web3Santa
@@ -22,6 +22,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
  *  DSC system should always be ovvercollateralized at no point should the value of all collateral
  *
  */
+
 contract DSCEngine is ReentrancyGuard {
     error DSCEngine__MorethanZero();
     error DSCEngine__PriceFeedMustMatchLenthTokenAddress();
@@ -31,6 +32,9 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__BreakHealthFactor(uint256 healthFactor);
     error DSCEngine__HealthFactorOK();
     error DSCEngine__HealthFactorNotImproved();
+
+    // type
+    using OracleLib for AggregatorV3Interface;
 
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     // eth / usd decimal 8
@@ -316,7 +320,7 @@ contract DSCEngine is ReentrancyGuard {
             /*uint timeStamp*/
             ,
             /*uint80 answeredInRound*/
-        ) = priceFeed.latestRoundData();
+        ) = priceFeed.staleCheckLastestRoundData();
 
         // 1eth = $ 3000
         // the returns  1e8
@@ -328,14 +332,14 @@ contract DSCEngine is ReentrancyGuard {
         // $ETH
         // $2000 / ETH. $1000 = 0.5 ETH
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLastestRoundData();
 
         // ($1000e18 * 1e18) / ($2000 * 1e10) =
         // 5000000000000000000 / 30000000000000 = 166666
         return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
-    function getUserCollerterralAmount(address user, address token) public view returns (uint256) {
+    function getUserCollerterralAmount(address user, address token) external view returns (uint256) {
         return s_collateralDeposited[user][token];
     }
 
@@ -347,6 +351,10 @@ contract DSCEngine is ReentrancyGuard {
         (totalDscMinted, collateralValueInUsd) = _getAccountInformation(user);
 
         return (totalDscMinted, collateralValueInUsd);
+    }
+
+    function getHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
     }
 
     function getPRECISION() public pure returns (uint256) {
@@ -369,11 +377,11 @@ contract DSCEngine is ReentrancyGuard {
         return MIN_HEALTH_FACTOR;
     }
 
-    function getHealthFactor(address user) external view returns (uint256) {
-        return _healthFactor(user);
-    }
-
     function getCollateralToken() public view returns (address[] memory) {
         return s_collateralToken;
+    }
+
+    function getTokenPriceFeed(address token) public view returns (address) {
+        return s_priceFeeds[token];
     }
 }

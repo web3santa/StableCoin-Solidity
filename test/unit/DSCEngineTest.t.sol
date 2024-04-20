@@ -107,16 +107,22 @@ contract DSCEngineTest is Test {
         vm.startPrank(user);
         uint256 uscBal = dsc.balanceOf(user);
         console.log(uscBal);
-        dsc.approve(address(dsce), 1500 ether);
-        vm.expectRevert();
+        dsc.approve(address(dsce), 1500000000000000000000);
         dsce.burnDsc(1500000000000000000000);
-        // dsce.burnDsc(1500 ether);
-        // dsce.redeemCollateral(address(weth), AMOUNT_COLLATERAL);
+
+        uint256 callateralWEHAmount = dsce.getUserCollerterralAmount(user, weth);
+        console.log(callateralWEHAmount);
+
+        dsce.redeemCollateral(address(weth), callateralWEHAmount);
+        callateralWEHAmount = dsce.getUserCollerterralAmount(user, weth);
+        console.log(callateralWEHAmount);
         uscBal = dsc.balanceOf(user);
         console.log(uscBal);
+
         vm.stopPrank();
 
-        // assertEq(uscBal, 0);
+        assertEq(callateralWEHAmount, 0);
+        assertEq(uscBal, 0);
     }
 
     function testBurnDsc() public {

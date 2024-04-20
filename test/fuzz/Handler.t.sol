@@ -9,6 +9,7 @@ import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
 
 contract Handler is Test {
     DeployStableCoin deployer;
@@ -16,12 +17,19 @@ contract Handler is Test {
     HelperConfig config;
     DecentralizedStableCoin dsc;
     address public deployerAddress;
-    address wethUsdPriceFeed;
-    address wbtcUsdPriceFeed;
     ERC20Mock weth;
     ERC20Mock wbtc;
 
+    uint256 public timesMintIsCalled;
+    address[] public usersWithCollateralDeposited;
+    MockV3Aggregator public ethUsdPriceFeed;
+    MockV3Aggregator public btcUsdPriceFeed;
+
     uint256 MAX_DEPOSIT_SIZE = type(uint96).max; // max uint96 value
+
+    // price feed
+    // weth token
+    // wbtc token
 
     constructor(DSCEngine _dsceEngine, DecentralizedStableCoin _dsc) {
         dsce = _dsceEngine;
@@ -30,22 +38,33 @@ contract Handler is Test {
         address[] memory collateralToken = dsce.getCollateralToken();
         weth = ERC20Mock(collateralToken[0]);
         wbtc = ERC20Mock(collateralToken[1]);
+
+        ethUsdPriceFeed = MockV3Aggregator(dsce.getTokenPriceFeed(address(weth)));
+        btcUsdPriceFeed = MockV3Aggregator(dsce.getTokenPriceFeed(address(wbtc)));
     }
 
-    function mintDsc(uint256 amount) public {
-        (uint256 totalDscMinted, uint256 collateralValueInUsd) = dsce.getUserAccountInfo(msg.sender);
+    function mintDsc(uint256 amount, uint256 addressSeed) public {
+        if (usersWithCollateralDeposited.length == 0) {
+            return;
+        }
+        address sender = usersWithCollateralDeposited[addressSeed % usersWithCollateralDeposited.length];
+        // msg.sender
+        vm.startPrank(sender);
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = dsce.getUserAccountInfo(sender);
         int256 maxDscTomint = (int256(collateralValueInUsd) / 2) - int256(totalDscMinted);
 
         if (maxDscTomint < 0) {
             return;
         }
 
-        amount = bound(amount, 0, uint256(maxDscTomint));
-        if (amount == 0) {
+        uint256 max = bound(amount, 0, uint256(maxDscTomint));
+        if (max == 0) {
             return;
         }
 
-        dsce.mintDsc(amount);
+        dsce.mintDsc(max);
+        vm.stopPrank();
+        timesMintIsCalled++;
     }
 
     // redeem collateral <-
@@ -57,6 +76,9 @@ contract Handler is Test {
         collateral.approve(address(dsce), amountCollateral);
 
         dsce.depositCollateral(address(collateral), amountCollateral);
+
+        // double push
+        usersWithCollateralDeposited.push(msg.sender);
     }
 
     function redeemCollateral(uint256 collsteralSeed, uint256 amountCollateral) public {
@@ -71,6 +93,11 @@ contract Handler is Test {
         }
         dsce.redeemCollateral(address(collateral), amountCollateral);
     }
+
+    // function updateCollateralPrice(uint96 newPrice) public {
+    //     int256 newPriceInt = int256(uint256(newPrice));
+    //     ethUsdPriceFeed.updateAnswer(newPriceInt);
+    // }
 
     function _getCollateralFromSeed(uint256 collateralSeed) private view returns (ERC20Mock) {
         if (collateralSeed % 2 == 0) {

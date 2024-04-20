@@ -22,3 +22,6 @@
 - 0xD8D7B82506Fb204af708134999Bb775069e0b1e4
 
 forge coverage --report debug
+
+1. some proper oracle use
+2. write more tests
